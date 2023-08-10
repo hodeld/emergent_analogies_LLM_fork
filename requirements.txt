@@ -1,0 +1,4 @@
+numpy==1.25.2
+matplotlib==3.7.2
+openai==-0.27.8
+statsmodels==0.14.0

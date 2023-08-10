@@ -69,10 +69,20 @@ realworld_linear = [['cold', 'cool', 'warm', 'hot'],
 					['jack', 'queen', 'king', 'ace'],
 					['penny', 'nickel', 'dime', 'quarter'],
 					['second', 'minute', 'hour', 'day']]
-
+def get_next_letter(letter):
+	ind = letters.index(letter)
+	try:
+		return letters[ind+1]
+	except IndexError:
+		return letters[0]
 # Successor transformation
-def apply_succ(prob_letters):
-	return [prob_letters[:-1], prob_letters[:-2] + [prob_letters[-1]]]
+def apply_succ(prob_letters, do_modify=False):
+	last_letter = prob_letters[-1]
+	if do_modify:
+		last_letter_new = get_next_letter(last_letter)
+		print(last_letter_new, 'instead of', last_letter)
+		last_letter = last_letter_new
+	return [prob_letters[:-1], prob_letters[:-2] + [last_letter]]
 
 # Predecessor transformation
 def apply_pred(prob_letters):
@@ -120,7 +130,8 @@ def apply_sort(prob_letters):
 # Method for generating subset of problems
 def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=9, larger_int_size=2,
 					trans_allowed=['succ', 'pred', 'add_letter', 'remove_redundant', 'fix_alphabet', 'sort'],
-					gen_allowed=['larger_int', 'longer_targ', 'group', 'interleaved', 'letter2num', 'reverse', 'realworld']):
+					gen_allowed=['larger_int', 'longer_targ', 'group', 'interleaved', 'letter2num', 'reverse', 'realworld'],
+					do_modify=False):
 	# Initialize storage for problems
 	all_prob = []
 	all_trans = []
@@ -177,8 +188,8 @@ def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=
 		trans = trans_allowed[0]
 		# Apply transformation
 		if trans == 'succ':
-			src = apply_succ(src_letters)
-			tgt = apply_succ(tgt_letters)
+			src = apply_succ(src_letters, do_modify)
+			tgt = apply_succ(tgt_letters, do_modify)
 		elif trans == 'pred':
 			src = apply_pred(src_letters)
 			tgt = apply_pred(tgt_letters)
@@ -229,10 +240,11 @@ def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=
 		# Check that problem doesn't already exist
 		prob = [src, tgt]
 		duplicate = False
-		for p_prev in range(len(all_prob)):
-			if np.array(prob).shape == np.array(all_prob[p_prev]).shape:
-				if np.all(np.array(prob) == np.array(all_prob[p_prev])):
-					duplicate = True
+		if trans not in ['add_letter', 'remove_redundant', 'fix_alphabet', 'sort', 'pred']: # todo
+			for p_prev in range(len(all_prob)):
+				if np.array(prob).shape == np.array(all_prob[p_prev]).shape:
+					if np.all(np.array(prob) == np.array(all_prob[p_prev])):
+						duplicate = True
 		# Add to problem subset
 		if not duplicate:
 			all_prob.append(prob)
@@ -286,64 +298,73 @@ def split_subset(all_prob, N_split):
 		all_prob_split.append(subset)
 	return all_prob_split
 
-# Generate all basic analogies (zero generalizations)
-all_succ = gen_prob_subset(trans_allowed=['succ'])
-all_pred = gen_prob_subset(trans_allowed=['pred'])
-all_add_letter = gen_prob_subset(trans_allowed=['add_letter'])
-all_remove_redundant = gen_prob_subset(trans_allowed=['remove_redundant'])
-all_fix_alphabet = gen_prob_subset(trans_allowed=['fix_alphabet'])
-all_sort = gen_prob_subset(trans_allowed=['sort'])
+def main(do_modify=False):
+	# Generate all basic analogies (zero generalizations)
+	all_succ = gen_prob_subset(trans_allowed=['succ'], do_modify=do_modify)
+	if do_modify is False:
+		all_pred = gen_prob_subset(trans_allowed=['pred'])
+		all_add_letter = gen_prob_subset(trans_allowed=['add_letter'])
+		all_remove_redundant = gen_prob_subset(trans_allowed=['remove_redundant'])
+		all_fix_alphabet = gen_prob_subset(trans_allowed=['fix_alphabet'])
+		all_sort = gen_prob_subset(trans_allowed=['sort'])
 
-# Generate all problems with one generalization (randomly sample transformations)
-all_larger_int = gen_prob_subset(N_generalize=1, gen_allowed=['larger_int'])
-all_longer_targ = gen_prob_subset(N_generalize=1, gen_allowed=['longer_targ'])
-all_group = gen_prob_subset(N_generalize=1, gen_allowed=['group'])
-all_interleaved = gen_prob_subset(N_generalize=1, gen_allowed=['interleaved'])
-all_letter2num = gen_prob_subset(N_generalize=1, gen_allowed=['letter2num'])
-all_reverse = gen_prob_subset(N_generalize=1, gen_allowed=['reverse'])
+		# Generate all problems with one generalization (randomly sample transformations)
+		all_larger_int = gen_prob_subset(N_generalize=1, gen_allowed=['larger_int'])
+		all_longer_targ = gen_prob_subset(N_generalize=1, gen_allowed=['longer_targ'])
+		all_group = gen_prob_subset(N_generalize=1, gen_allowed=['group'])
+		all_interleaved = gen_prob_subset(N_generalize=1, gen_allowed=['interleaved'])
+		all_letter2num = gen_prob_subset(N_generalize=1, gen_allowed=['letter2num'])
+		all_reverse = gen_prob_subset(N_generalize=1, gen_allowed=['reverse'])
 
-# Generate all problems with 2 and 3 generalizations
-all_2gen = gen_prob_subset(N_generalize=2, N_prob=600, gen_allowed=['larger_int', 'longer_targ', 'group', 'interleaved', 'letter2num', 'reverse'])
-all_2gen_split = split_subset(all_2gen, 6)
-all_3gen = gen_prob_subset(N_generalize=3, N_prob=600, gen_allowed=['larger_int', 'longer_targ', 'group', 'interleaved', 'letter2num', 'reverse'])
-all_3gen_split = split_subset(all_3gen, 6)
+		# Generate all problems with 2 and 3 generalizations
+		all_2gen = gen_prob_subset(N_generalize=2, N_prob=600, gen_allowed=['larger_int', 'longer_targ', 'group', 'interleaved', 'letter2num', 'reverse'])
+		all_2gen_split = split_subset(all_2gen, 6)
+		all_3gen = gen_prob_subset(N_generalize=3, N_prob=600, gen_allowed=['larger_int', 'longer_targ', 'group', 'interleaved', 'letter2num', 'reverse'])
+		all_3gen_split = split_subset(all_3gen, 6)
 
-# Generate problems involving generalization to real-world concepts
-all_realworld_succ = gen_prob_subset(standard_len=4, N_generalize=1, trans_allowed=['succ'], gen_allowed=['realworld'])
-all_realworld_pred = gen_prob_subset(standard_len=4, N_generalize=1, trans_allowed=['pred'], gen_allowed=['realworld'])
-all_realworld_add_letter = gen_prob_subset(standard_len=4, N_generalize=1, trans_allowed=['add_letter'], gen_allowed=['realworld'])
-all_realworld_sort = gen_prob_subset(standard_len=4, N_generalize=1, trans_allowed=['sort'], gen_allowed=['realworld'])
+		# Generate problems involving generalization to real-world concepts
+		all_realworld_succ = gen_prob_subset(standard_len=4, N_generalize=1, trans_allowed=['succ'], gen_allowed=['realworld'])
+		all_realworld_pred = gen_prob_subset(standard_len=4, N_generalize=1, trans_allowed=['pred'], gen_allowed=['realworld'])
+		all_realworld_add_letter = gen_prob_subset(standard_len=4, N_generalize=1, trans_allowed=['add_letter'], gen_allowed=['realworld'])
+		all_realworld_sort = gen_prob_subset(standard_len=4, N_generalize=1, trans_allowed=['sort'], gen_allowed=['realworld'])
 
-# Combine problems
-all_prob_types = [all_succ, all_pred, all_add_letter, all_remove_redundant, all_fix_alphabet, all_sort,
-				  all_larger_int, all_longer_targ, all_group, all_interleaved, all_letter2num, all_reverse,
-				  all_2gen_split[0], all_2gen_split[1], all_2gen_split[2], all_2gen_split[3], all_2gen_split[4], all_2gen_split[5],
-				  all_3gen_split[0], all_3gen_split[1], all_3gen_split[2], all_3gen_split[3], all_3gen_split[4], all_3gen_split[5],
-				  all_realworld_succ, all_realworld_pred, all_realworld_add_letter, all_realworld_sort]
-all_prob_type_names = ['succ', 'pred', 'add_letter', 'remove_redundant', 'fix_alphabet', 'sort',
-					   'larger_int', 'longer_targ', 'group', 'interleaved', 'letter2num', 'reverse',
-					   '2gen_split1', '2gen_split2', '2gen_split3', '2gen_split4', '2gen_split5', '2gen_split6',
-					   '3gen_split1', '3gen_split2', '3gen_split3', '3gen_split4', '3gen_split5', '3gen_split6',
-					   'realworld_succ', 'realworld_pred', 'realworld_add_letter', 'realworld_sort']
+		# Combine problems
+		all_prob_types = [all_succ, all_pred, all_add_letter, all_remove_redundant, all_fix_alphabet, all_sort,
+						  all_larger_int, all_longer_targ, all_group, all_interleaved, all_letter2num, all_reverse,
+						  all_2gen_split[0], all_2gen_split[1], all_2gen_split[2], all_2gen_split[3], all_2gen_split[4], all_2gen_split[5],
+						  all_3gen_split[0], all_3gen_split[1], all_3gen_split[2], all_3gen_split[3], all_3gen_split[4], all_3gen_split[5],
+						  all_realworld_succ, all_realworld_pred, all_realworld_add_letter, all_realworld_sort]
+		all_prob_type_names = ['succ', 'pred', 'add_letter', 'remove_redundant', 'fix_alphabet', 'sort',
+							   'larger_int', 'longer_targ', 'group', 'interleaved', 'letter2num', 'reverse',
+							   '2gen_split1', '2gen_split2', '2gen_split3', '2gen_split4', '2gen_split5', '2gen_split6',
+							   '3gen_split1', '3gen_split2', '3gen_split3', '3gen_split4', '3gen_split5', '3gen_split6',
+							   'realworld_succ', 'realworld_pred', 'realworld_add_letter', 'realworld_sort']
+	else:
+		all_prob_types = [all_succ,]
+		all_prob_type_names = ['succ']
 
-# Create js variable for all_problems
-all_prob_js = {}
-all_prob_np = {}
-for p in range(len(all_prob_types)):
-	all_prob_js = save_prob(all_prob_types[p], all_prob_type_names[p], all_prob_js)
-	all_prob_np[all_prob_type_names[p]] = all_prob_types[p]
-# Write numpy file
-np.savez('./all_prob.npz', all_prob=all_prob_np)
-# Convert to json strings
-all_prob_json_string = json.dumps(all_prob_js)
-# Write to js script
-js_fname = './all_prob.js'
-js_fid = open(js_fname, 'w')
-js_fid.write('var all_problems = ' + all_prob_json_string)
-js_fid.close()
+	# Create js variable for all_problems
+	all_prob_js = {}
+	all_prob_np = {}
+	for p in range(len(all_prob_types)):
+		all_prob_js = save_prob(all_prob_types[p], all_prob_type_names[p], all_prob_js)
+		all_prob_np[all_prob_type_names[p]] = all_prob_types[p]
+	# Write numpy file
+	if do_modify:
+		suffix = '_modified'
+	np.savez(f'./all_prob{suffix}.npz', all_prob=all_prob_np)
+	# Convert to json strings
+	all_prob_json_string = json.dumps(all_prob_js)
+	# Write to js script
+	js_fname = f'./all_prob{suffix}.js'
+	js_fid = open(js_fname, 'w')
+	js_fid.write('var all_problems = ' + all_prob_json_string)
+	js_fid.close()
 
 
 
+if __name__ == '__main__':
+	main(do_modify=True)
 
 
 
