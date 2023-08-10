@@ -33,3 +33,9 @@ def get_suffix_problems(args):
     if args.modified:
         save_fname += '_modified'
     return save_fname
+
+
+def get_prob_types(args, all_prob, prob_types):
+    if args.subset and not args.modified:  # todo get subset from modified
+        pass  # prob_types = ['succ'] # define subset
+    return prob_types

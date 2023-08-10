@@ -7,7 +7,7 @@ import argparse
 import os
 import time
 
-from letter_string.get_arguments import args, get_suffix, get_suffix_problems
+from letter_string.get_arguments import args, get_suffix, get_suffix_problems, get_prob_types
 from secrets_openai import OPENAI_KEY
 
 
@@ -65,8 +65,7 @@ def main(args):
 	suffix = get_suffix_problems(args)
 	all_prob = np.load(f'./all_prob{suffix}.npz', allow_pickle=True)['all_prob']
 	prob_types = builtins.list(all_prob.item().keys())
-	if args.subset:
-		prob_types = ['succ']
+	prob_types = get_prob_types(args, all_prob, prob_types)
 	N_prob_types = len(prob_types)
 
 	# Evaluate

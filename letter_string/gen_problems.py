@@ -3,6 +3,8 @@ from copy import deepcopy
 import random
 import json
 
+import pandas as pd
+
 ## Problems generated using one of the following 6 transformations:
 #
 # Successorship
@@ -58,6 +60,8 @@ import json
 #
 ##
 
+INTERVAL_MOD = 5
+INTERVAL_SIZE = 5  # in paper = 2
 # Alphabet
 letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 N_letters = len(letters)
@@ -69,17 +73,16 @@ realworld_linear = [['cold', 'cool', 'warm', 'hot'],
 					['jack', 'queen', 'king', 'ace'],
 					['penny', 'nickel', 'dime', 'quarter'],
 					['second', 'minute', 'hour', 'day']]
-def get_next_letter(letter):
+def get_letter_with_interval(letter):
 	ind = letters.index(letter)
-	try:
-		return letters[ind+1]
-	except IndexError:
-		return letters[0]
+	ind_new = (ind+INTERVAL_MOD) % N_letters
+	return letters[ind_new]
 # Successor transformation
+
 def apply_succ(prob_letters, do_modify=False):
 	last_letter = prob_letters[-1]
 	if do_modify:
-		last_letter_new = get_next_letter(last_letter)
+		last_letter_new = get_letter_with_interval(last_letter)
 		print(last_letter_new, 'instead of', last_letter)
 		last_letter = last_letter_new
 	return [prob_letters[:-1], prob_letters[:-2] + [last_letter]]
@@ -128,7 +131,7 @@ def apply_sort(prob_letters):
 	return [prob_swapped, prob_letters]
 
 # Method for generating subset of problems
-def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=9, larger_int_size=2,
+def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=9, larger_int_size=INTERVAL_SIZE,
 					trans_allowed=['succ', 'pred', 'add_letter', 'remove_redundant', 'fix_alphabet', 'sort'],
 					gen_allowed=['larger_int', 'longer_targ', 'group', 'interleaved', 'letter2num', 'reverse', 'realworld'],
 					do_modify=False):
@@ -169,10 +172,12 @@ def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=
 				tgt_span = (standard_len * larger_int_size) - 1
 				src_duplicate = True
 				while src_duplicate:
-					tgt_start = np.floor(np.random.rand() * (len(letters)-(tgt_span-1))).astype(int)
+					#tgt_start = np.floor(np.random.rand() * (len(letters)-(tgt_span-1))).astype(int) # skewing towards the beginning of the alphabet
+					tgt_start = np.floor(np.random.rand() * (len(letters) - 1)).astype(int)
 					if src_start != tgt_start:
 						src_duplicate = False
-				tgt_letters = letters[tgt_start:tgt_start+tgt_span][::2]
+				# extending letters for larger interval size
+				tgt_letters = (letters*3)[tgt_start:tgt_start+tgt_span][::larger_int_size]
 			elif 'longer_targ' not in generalize and 'larger_int' not in generalize:
 				src_duplicate = True
 				while src_duplicate:
@@ -188,8 +193,8 @@ def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=
 		trans = trans_allowed[0]
 		# Apply transformation
 		if trans == 'succ':
-			src = apply_succ(src_letters, do_modify)
-			tgt = apply_succ(tgt_letters, do_modify)
+			src = apply_succ(src_letters)  # apply_succ(src_letters, do_modify)
+			tgt = apply_succ(tgt_letters) # apply_succ(tgt_letters, do_modify)
 		elif trans == 'pred':
 			src = apply_pred(src_letters)
 			tgt = apply_pred(tgt_letters)
@@ -240,11 +245,12 @@ def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=
 		# Check that problem doesn't already exist
 		prob = [src, tgt]
 		duplicate = False
-		if trans not in ['add_letter', 'remove_redundant', 'fix_alphabet', 'sort', 'pred']: # todo
-			for p_prev in range(len(all_prob)):
-				if np.array(prob).shape == np.array(all_prob[p_prev]).shape:
-					if np.all(np.array(prob) == np.array(all_prob[p_prev])):
-						duplicate = True
+		#if trans not in ['add_letter', 'remove_redundant', 'fix_alphabet', 'sort', 'pred']: # todo in pandas
+		# using pandas instead of numpy due to dimension error
+		for p_prev in range(len(all_prob)):
+			if pd.Series(prob).shape == pd.Series(all_prob[p_prev]).shape:
+				if np.all(pd.Series(prob) == pd.Series(all_prob[p_prev])):
+					duplicate = True
 		# Add to problem subset
 		if not duplicate:
 			all_prob.append(prob)
@@ -299,9 +305,10 @@ def split_subset(all_prob, N_split):
 	return all_prob_split
 
 def main(do_modify=False):
-	# Generate all basic analogies (zero generalizations)
-	all_succ = gen_prob_subset(trans_allowed=['succ'], do_modify=do_modify)
+	all_larger_int = gen_prob_subset(N_generalize=1, gen_allowed=['larger_int'])
 	if do_modify is False:
+	# Generate all basic analogies (zero generalizations)
+		all_succ = gen_prob_subset(trans_allowed=['succ'], do_modify=do_modify)
 		all_pred = gen_prob_subset(trans_allowed=['pred'])
 		all_add_letter = gen_prob_subset(trans_allowed=['add_letter'])
 		all_remove_redundant = gen_prob_subset(trans_allowed=['remove_redundant'])
@@ -340,8 +347,8 @@ def main(do_modify=False):
 							   '3gen_split1', '3gen_split2', '3gen_split3', '3gen_split4', '3gen_split5', '3gen_split6',
 							   'realworld_succ', 'realworld_pred', 'realworld_add_letter', 'realworld_sort']
 	else:
-		all_prob_types = [all_succ,]
-		all_prob_type_names = ['succ']
+		all_prob_types = [all_larger_int ,]  # all_succ
+		all_prob_type_names = ['larger_int']   # succ
 
 	# Create js variable for all_problems
 	all_prob_js = {}

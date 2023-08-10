@@ -1,12 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 from statsmodels.stats.proportion import proportion_confint
 from itertools import combinations
 import builtins
 import os
 
 from letter_string.eval_GPT3_letterstring_prob import generate_prompt
-from letter_string.get_arguments import args, get_suffix, get_suffix_problems
+from letter_string.get_arguments import args, get_suffix, get_suffix_problems, get_prob_types
 
 
 def check_path(path):
@@ -30,8 +31,7 @@ def main():
 	suffix_prblms = get_suffix_problems(args)
 	all_prob = np.load(f'./all_prob{suffix_prblms}.npz', allow_pickle=True)['all_prob']
 	prob_types = builtins.list(all_prob.item().keys())
-	if args.subset:
-		prob_types = ['succ']
+	prob_types = get_prob_types(args, all_prob, prob_types)
 	# All possible combinations of transformations and generalizations
 	trans = ['succ', 'pred', 'add_letter', 'remove_redundant', 'fix_alphabet', 'sort']
 	gen = ['larger_int', 'longer_targ', 'group', 'interleaved', 'letter2num', 'reverse']
@@ -246,6 +246,10 @@ def main():
 	all_gen_lower_err = all_gen_acc - all_gen_ci_lower
 	all_gen_upper_err =  all_gen_ci_upper - all_gen_acc
 	all_gen_err = np.array([all_gen_lower_err, all_gen_upper_err])
+	if len(prob_types) == 1:
+		correct_trans = pd.Series(all_trans[:len(all_prob_type_correct_pred[0])])[all_prob_type_correct_pred[0]]
+		print('correct transformations:', correct_trans)
+
 	# Plot
 	all_gen_prob_type_names = np.arange(len(gen_ind)).astype(str)
 	x_points = np.arange(len(gen_ind))
