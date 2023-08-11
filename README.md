@@ -2,8 +2,8 @@
 
 Code for the response to the paper [Emergent Analogical Reasoning in Large Language Models](https://arxiv.org/abs/2212.09196). 
 
-This repo is forked from the [repo for the original paper](https://github.com/taylorwwebb/emergent_analogies_LLM)
-I only modified code in the letter_string directory.
+This repo is forked from the [repo for the original paper](https://github.com/taylorwwebb/emergent_analogies_LLM).
+I only modified the code in the letter_string directory.
 
 ## Prerequisites
 
