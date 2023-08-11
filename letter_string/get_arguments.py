@@ -5,8 +5,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--sentence', action='store_true', help="Present problem in sentence format.", default=False)
 parser.add_argument('--noprompt', action='store_true', help="Present problem without prompt.", default=False)
 parser.add_argument('--replica', action='store_true', help="Replicate results", default=False)
-parser.add_argument('--subset', action='store_true', help="Replicate results", default=True)
-parser.add_argument('--modified', action='store_true', help="Replicate results", default=True)
+parser.add_argument('--subset', action='store_true', help="Use subset", default=True)
+parser.add_argument('--no-subset', dest='subset', action='store_false', help="Do not use subset")
+parser.add_argument('--modified', action='store_true', help="Use modified problems", default=True)
+parser.add_argument('--no-modified', dest='modified', action='store_false', help="Do not use modified problems")
 
 args = parser.parse_args()
 

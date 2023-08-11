@@ -7,7 +7,7 @@ import argparse
 import os
 import time
 
-from letter_string.get_arguments import args, get_suffix, get_suffix_problems, get_prob_types
+from get_arguments import args, get_suffix, get_suffix_problems, get_prob_types
 from secrets_openai import OPENAI_KEY
 
 

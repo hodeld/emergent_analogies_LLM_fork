@@ -138,6 +138,7 @@ def main():
 
 	# Create directory for results
 	results_dir = get_results_dir()
+	print(results_dir)
 	check_path(results_dir)
 
 	# Save individual trial results
