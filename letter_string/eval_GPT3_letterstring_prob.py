@@ -67,7 +67,7 @@ def main(args):
 	prob_types = builtins.list(all_prob.item().keys())
 	prob_types = get_prob_types(args, all_prob, prob_types)
 	N_prob_types = len(prob_types)
-
+	new_file = True
 	# Evaluate
 	N_trials_per_prob_type = 10 # 50 todo
 	print('N_trials_per_prob_type', N_trials_per_prob_type)
@@ -94,9 +94,10 @@ def main(args):
 		save_fname = 'gpt3_responses/gpt3_letterstring_results'
 		save_fname += get_suffix(args)
 		save_fname += '.npz'
-		if os.path.isfile(save_fname):
+		if os.path.isfile(save_fname) and new_file:
 			new_name = save_fname.replace('.npz', '_copy.npz')
 			shutil.copyfile(save_fname, new_name)
+			new_file = False
 		np.savez(save_fname, all_prob_type_responses=all_prob_type_responses, allow_pickle=True)
 
 

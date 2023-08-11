@@ -73,27 +73,35 @@ realworld_linear = [['cold', 'cool', 'warm', 'hot'],
 					['jack', 'queen', 'king', 'ace'],
 					['penny', 'nickel', 'dime', 'quarter'],
 					['second', 'minute', 'hour', 'day']]
-def get_letter_with_interval(letter):
+def get_letter_with_interval(letter, dir=1):
 	ind = letters.index(letter)
-	ind_new = (ind+INTERVAL_MOD) % N_letters
+	ind_new = (ind+dir*INTERVAL_MOD) % N_letters
 	return letters[ind_new]
 # Successor transformation
 
-def apply_succ(prob_letters, do_modify=False):
+def apply_succ(prob_letters, modifications):
 	last_letter = prob_letters[-1]
-	if do_modify:
+	if 'larger_int_focus' in modifications:
 		last_letter_new = get_letter_with_interval(last_letter)
-		print(last_letter_new, 'instead of', last_letter)
+		#print(last_letter_new, 'instead of', last_letter)
 		last_letter = last_letter_new
 	return [prob_letters[:-1], prob_letters[:-2] + [last_letter]]
 
 # Predecessor transformation
-def apply_pred(prob_letters):
-	return [prob_letters[1:], [prob_letters[0]] + prob_letters[2:]]
+def apply_pred(prob_letters, modifications):
+	first_letter = prob_letters[0]
+	if 'larger_int_focus' in modifications:
+		first_letter_new = get_letter_with_interval(first_letter, dir=-1)
+		first_letter = first_letter_new
+	return [prob_letters[1:], [first_letter] + prob_letters[2:]]
 
 # Add letter to sequence
-def apply_add_letter(prob_letters):
-	return [prob_letters[:-1], prob_letters]
+def apply_add_letter(prob_letters, modifications):
+	last_letter = prob_letters[-1]
+	if 'larger_int_focus' in modifications:
+		last_letter_new = get_letter_with_interval(last_letter)
+		last_letter = last_letter_new
+	return [prob_letters[:-1], prob_letters[:-1] + [last_letter]]
 
 # Remove redundant letter
 def apply_remove_redundant(prob_letters):
@@ -119,6 +127,7 @@ def apply_fix_alphabet(prob_letters):
 
 # Sort letters
 def apply_sort(prob_letters):
+	prob_letters.sort()
 	swap_loc = np.arange(len(prob_letters))
 	np.random.shuffle(swap_loc)
 	i_loc = swap_loc[0]
@@ -134,17 +143,22 @@ def apply_sort(prob_letters):
 def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=9, larger_int_size=INTERVAL_SIZE,
 					trans_allowed=['succ', 'pred', 'add_letter', 'remove_redundant', 'fix_alphabet', 'sort'],
 					gen_allowed=['larger_int', 'longer_targ', 'group', 'interleaved', 'letter2num', 'reverse', 'realworld'],
-					do_modify=False):
+					modifications=[]):
 	# Initialize storage for problems
 	all_prob = []
 	all_trans = []
 	all_gen = []
 	all_src_letters = []
 	all_tgt_letters = []
+	all_mods = []
 	while len(all_prob) < N_prob:
 		# Sample source letters
 		src_start = np.floor(np.random.rand() * (len(letters)-(standard_len-1))).astype(int)
-		src_letters = letters[src_start:src_start+standard_len]
+		if 'larger_int_all' in modifications:
+			tgt_span = (standard_len * larger_int_size) - 1
+			src_letters = (letters * 3)[src_start:src_start + tgt_span][::larger_int_size]
+		else:
+			src_letters = letters[src_start:src_start+standard_len]
 		# Sample generalizations
 		random.shuffle(gen_allowed)
 		generalize = gen_allowed[:N_generalize]
@@ -168,7 +182,7 @@ def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=
 					if src_start != tgt_start:
 						src_duplicate = False
 				tgt_letters = letters[tgt_start:tgt_start+longer_targ_len]
-			elif 'longer_targ' not in generalize and 'larger_int' in generalize:
+			elif 'larger_int_all' in modifications or ('longer_targ' not in generalize and 'larger_int' in generalize):
 				tgt_span = (standard_len * larger_int_size) - 1
 				src_duplicate = True
 				while src_duplicate:
@@ -193,14 +207,14 @@ def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=
 		trans = trans_allowed[0]
 		# Apply transformation
 		if trans == 'succ':
-			src = apply_succ(src_letters)  # apply_succ(src_letters, do_modify)
-			tgt = apply_succ(tgt_letters) # apply_succ(tgt_letters, do_modify)
+			src = apply_succ(src_letters, modifications)  # apply_succ(src_letters, do_modify)
+			tgt = apply_succ(tgt_letters, modifications) # apply_succ(tgt_letters, do_modify)
 		elif trans == 'pred':
-			src = apply_pred(src_letters)
-			tgt = apply_pred(tgt_letters)
+			src = apply_pred(src_letters, modifications)
+			tgt = apply_pred(tgt_letters, modifications)
 		elif trans == 'add_letter':
-			src = apply_add_letter(src_letters)
-			tgt = apply_add_letter(tgt_letters)
+			src = apply_add_letter(src_letters, modifications)
+			tgt = apply_add_letter(tgt_letters, modifications)
 		elif trans == 'remove_redundant':
 			src = apply_remove_redundant(src_letters)
 			tgt = apply_remove_redundant(tgt_letters)
@@ -250,6 +264,7 @@ def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=
 		for p_prev in range(len(all_prob)):
 			if pd.Series(prob).shape == pd.Series(all_prob[p_prev]).shape:
 				if np.all(pd.Series(prob) == pd.Series(all_prob[p_prev])):
+					print('duplicate', prob, all_prob[p_prev])
 					duplicate = True
 		# Add to problem subset
 		if not duplicate:
@@ -258,7 +273,10 @@ def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=
 			all_gen.append(generalize)
 			all_src_letters.append(src_letters)
 			all_tgt_letters.append(tgt_letters)
-	return {'prob': all_prob, 'trans': all_trans, 'gen': all_gen, 'src_letters': all_src_letters, 'tgt_letters': all_tgt_letters}
+			all_mods.append(modifications)
+
+	return {'prob': all_prob, 'trans': all_trans, 'gen': all_gen, 'src_letters': all_src_letters, 'tgt_letters': all_tgt_letters,
+			'modifications': all_mods}
 
 # Add problems to json and numpy file
 def save_prob(all_prob, prob_type_name, all_prob_js):
@@ -305,15 +323,27 @@ def split_subset(all_prob, N_split):
 	return all_prob_split
 
 def main(do_modify=False):
-	all_larger_int = gen_prob_subset(N_generalize=1, gen_allowed=['larger_int'])
-	if do_modify is False:
-	# Generate all basic analogies (zero generalizations)
-		all_succ = gen_prob_subset(trans_allowed=['succ'], do_modify=do_modify)
+	if do_modify:
+		modifications_1 = ['larger_int_focus']
+		modifications_2 = ['larger_int_all']
+		# Generate all basic analogies (zero generalizations)
+		all_succ = gen_prob_subset(trans_allowed=['succ'], modifications=modifications_1)
+		all_pred = gen_prob_subset(trans_allowed=['pred'], modifications=modifications_1)
+		all_add_letter = gen_prob_subset(trans_allowed=['add_letter'], modifications=modifications_1)
+		#all_remove_redundant = gen_prob_subset(trans_allowed=['remove_redundant'])
+		all_fix_alphabet = gen_prob_subset(trans_allowed=['fix_alphabet'], modifications=modifications_2)
+		all_sort = gen_prob_subset(trans_allowed=['sort'], modifications=modifications_2)
+
+		all_prob_types = [all_succ, all_pred, all_add_letter,  all_fix_alphabet, all_sort,]
+		all_prob_type_names = ['succ', 'pred', 'add_letter', 'fix_alphabet', 'sort',]
+	else:
+		# Generate all basic analogies (zero generalizations)
+		all_succ = gen_prob_subset(trans_allowed=['succ'])
 		all_pred = gen_prob_subset(trans_allowed=['pred'])
 		all_add_letter = gen_prob_subset(trans_allowed=['add_letter'])
 		all_remove_redundant = gen_prob_subset(trans_allowed=['remove_redundant'])
-		all_fix_alphabet = gen_prob_subset(trans_allowed=['fix_alphabet'])
-		all_sort = gen_prob_subset(trans_allowed=['sort'])
+		all_fix_alphabet = gen_prob_subset(trans_allowed=['fix_alphabet'], gen_allowed=['larger_int'])
+		all_sort = gen_prob_subset(trans_allowed=['sort'], gen_allowed=['larger_int'])
 
 		# Generate all problems with one generalization (randomly sample transformations)
 		all_larger_int = gen_prob_subset(N_generalize=1, gen_allowed=['larger_int'])
@@ -346,9 +376,7 @@ def main(do_modify=False):
 							   '2gen_split1', '2gen_split2', '2gen_split3', '2gen_split4', '2gen_split5', '2gen_split6',
 							   '3gen_split1', '3gen_split2', '3gen_split3', '3gen_split4', '3gen_split5', '3gen_split6',
 							   'realworld_succ', 'realworld_pred', 'realworld_add_letter', 'realworld_sort']
-	else:
-		all_prob_types = [all_larger_int ,]  # all_succ
-		all_prob_type_names = ['larger_int']   # succ
+
 
 	# Create js variable for all_problems
 	all_prob_js = {}
@@ -367,7 +395,6 @@ def main(do_modify=False):
 	js_fid = open(js_fname, 'w')
 	js_fid.write('var all_problems = ' + all_prob_json_string)
 	js_fid.close()
-
 
 
 if __name__ == '__main__':

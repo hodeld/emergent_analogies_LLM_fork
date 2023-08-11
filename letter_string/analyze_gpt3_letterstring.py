@@ -97,6 +97,7 @@ def main():
 				else:
 					correct_pred = False
 				if correct_pred:
+					print('correct prob_type:', prob_types[p])
 					prob = all_prob.item()[prob_types[p]]['prob'][t]
 					prompt = generate_prompt(prob, args)
 					print(prompt)
@@ -172,6 +173,7 @@ def main():
 	rank_order = np.flip(np.argsort(all_zerogen_acc))
 	# Plot
 	all_zerogen_prob_type_names = ['Successor', 'Predecessor', 'Extend\nsequence', 'Remove\nredundant\nletter', 'Fix\nalphabetic\nsequence', 'Sort']
+	all_zerogen_prob_type_names = pd.Series(all_zerogen_prob_type_names, index=trans).loc[prob_types].values
 	x_points = np.arange(len(all_zerogen_prob_types))
 	ax = plt.subplot(111)
 	plt.bar(x_points, all_zerogen_acc[rank_order], yerr=all_zerogen_err[:,rank_order], color=gpt3_color, edgecolor='black', width=bar_width)
@@ -263,9 +265,9 @@ def main():
 	plt.legend(['GPT-3'],fontsize=plot_fontsize,frameon=False)
 	hide_top_right(ax)
 	plt.tight_layout()
-	plt.show()
 	plt.savefig(results_dir + 'all_gen_acc.png', dpi=300, bbox_inches="tight")
 	plt.close()
+	plt.show()
 	# Save results
 	np.savez(results_dir + 'all_gen_acc.npz', all_acc=all_gen_acc, all_err=all_gen_err)
 
