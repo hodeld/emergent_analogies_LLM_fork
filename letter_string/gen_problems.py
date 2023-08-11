@@ -330,12 +330,12 @@ def main(do_modify=False):
 		all_succ = gen_prob_subset(trans_allowed=['succ'], modifications=modifications_1)
 		all_pred = gen_prob_subset(trans_allowed=['pred'], modifications=modifications_1)
 		all_add_letter = gen_prob_subset(trans_allowed=['add_letter'], modifications=modifications_1)
-		#all_remove_redundant = gen_prob_subset(trans_allowed=['remove_redundant'])
+		all_remove_redundant = gen_prob_subset(trans_allowed=['remove_redundant'], modifications=modifications_2)
 		all_fix_alphabet = gen_prob_subset(trans_allowed=['fix_alphabet'], modifications=modifications_2)
 		all_sort = gen_prob_subset(trans_allowed=['sort'], modifications=modifications_2)
 
-		all_prob_types = [all_succ, all_pred, all_add_letter,  all_fix_alphabet, all_sort,]
-		all_prob_type_names = ['succ', 'pred', 'add_letter', 'fix_alphabet', 'sort',]
+		all_prob_types = [all_succ, all_pred, all_add_letter,  all_remove_redundant, all_fix_alphabet, all_sort,]
+		all_prob_type_names = ['succ', 'pred', 'add_letter', 'remove_redundant', 'fix_alphabet', 'sort',]
 	else:
 		# Generate all basic analogies (zero generalizations)
 		all_succ = gen_prob_subset(trans_allowed=['succ'])

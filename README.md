@@ -1,8 +1,9 @@
-# Emergent Analogical Reasoning in Large Language Models
+# Response: Emergent Analogical Reasoning in Large Language Models
 
-Code for the paper [Emergent Analogical Reasoning in Large Language Models](https://arxiv.org/abs/2212.09196). 
+Code for the response to the paper [Emergent Analogical Reasoning in Large Language Models](https://arxiv.org/abs/2212.09196). 
 
-Code for each set of experiments, along with detailed instructions, are contained within separate directories.
+This repo is forked from the [repo for the original paper](https://github.com/taylorwwebb/emergent_analogies_LLM)
+I only modified code in the letter_string directory.
 
 ## Prerequisites
 
@@ -15,7 +16,3 @@ Code for each set of experiments, along with detailed instructions, are containe
 - [pandas](https://pandas.pydata.org/)
 - [R](https://www.r-project.org/)
 
-
-## Authorship
-
-All code was written by [Taylor Webb](https://github.com/taylorwwebb). 

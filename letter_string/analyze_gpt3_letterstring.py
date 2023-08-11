@@ -10,10 +10,16 @@ from letter_string.eval_GPT3_letterstring_prob import generate_prompt
 from letter_string.get_arguments import args, get_suffix, get_suffix_problems, get_prob_types
 
 
+TRANS = ['succ', 'pred', 'add_letter', 'remove_redundant', 'fix_alphabet', 'sort']
+
+
 def check_path(path):
 	if not os.path.exists(path):
 		os.mkdir(path)
 
+
+def get_results_dir():
+	return './GPT3_results' + get_suffix(args) +'/'
 def hide_top_right(ax):
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
@@ -33,7 +39,7 @@ def main():
 	prob_types = builtins.list(all_prob.item().keys())
 	prob_types = get_prob_types(args, all_prob, prob_types)
 	# All possible combinations of transformations and generalizations
-	trans = ['succ', 'pred', 'add_letter', 'remove_redundant', 'fix_alphabet', 'sort']
+	trans = TRANS
 	gen = ['larger_int', 'longer_targ', 'group', 'interleaved', 'letter2num', 'reverse']
 	all_trans = []
 	all_gen = []
@@ -131,7 +137,7 @@ def main():
 	all_prob_realworld = np.array(all_prob_realworld)
 
 	# Create directory for results
-	results_dir = './GPT3_results' + get_suffix(args) +'/'
+	results_dir = get_results_dir()
 	check_path(results_dir)
 
 	# Save individual trial results
@@ -174,6 +180,7 @@ def main():
 	# Plot
 	all_zerogen_prob_type_names = ['Successor', 'Predecessor', 'Extend\nsequence', 'Remove\nredundant\nletter', 'Fix\nalphabetic\nsequence', 'Sort']
 	all_zerogen_prob_type_names = pd.Series(all_zerogen_prob_type_names, index=trans).loc[prob_types].values
+	zerogen_rank_order = rank_order
 	x_points = np.arange(len(all_zerogen_prob_types))
 	ax = plt.subplot(111)
 	plt.bar(x_points, all_zerogen_acc[rank_order], yerr=all_zerogen_err[:,rank_order], color=gpt3_color, edgecolor='black', width=bar_width)
@@ -267,7 +274,6 @@ def main():
 	plt.tight_layout()
 	plt.savefig(results_dir + 'all_gen_acc.png', dpi=300, bbox_inches="tight")
 	plt.close()
-	plt.show()
 	# Save results
 	np.savez(results_dir + 'all_gen_acc.npz', all_acc=all_gen_acc, all_err=all_gen_err)
 
@@ -310,7 +316,62 @@ def main():
 	plt.close()
 	# Save results
 	np.savez(results_dir + 'realworld_acc.npz', all_acc=all_realworld_acc, all_err=all_realworld_err)
+	plot_paper_comparison(prob_types)
 
+
+def plot_paper_comparison(prob_types):
+
+	all_zerogen_prob_type_names = ['Successor', 'Predecessor', 'Extend\nsequence', 'Remove\nredundant\nletter',
+								   'Fix\nalphabetic\nsequence', 'Sort']
+	all_zerogen_prob_type_names = pd.Series(all_zerogen_prob_type_names, index=TRANS).loc[prob_types].values
+	prob_types_s = pd.Series(range(len(prob_types)), index=prob_types)
+	trans_order = ['add_letter', 'succ', 'pred', 'remove_redundant', 'fix_alphabet', 'sort'] # according to the paper
+	rank_order = prob_types_s.loc[trans_order].values
+
+	results_dir = get_results_dir()
+
+	# Plot settings
+	gpt3_color = 'salmon'
+	gpt3_origin_color = 'darkslateblue'
+	plot_fontsize = 10
+	title_fontsize = 12
+	axis_label_fontsize = 12
+	bar_width = 0.8
+	ind_bar_width = bar_width / 2
+
+	## Zero-generalization problems, grouped by transformation type
+	# Load results
+	gpt3_origin_zerogen_results = np.load('./GPT3_results/zerogen_acc.npz')
+	gpt3_origin_zerogen_acc = gpt3_origin_zerogen_results['all_acc']
+	gpt3_origin_zerogen_err = gpt3_origin_zerogen_results['all_err']
+	GPT3_zerogen_results = np.load(results_dir + 'zerogen_acc.npz')
+	GPT3_zerogen_acc = GPT3_zerogen_results['all_acc']
+	GPT3_zerogen_err = GPT3_zerogen_results['all_err']
+
+	x_points = np.arange(len(all_zerogen_prob_type_names))
+	ax = plt.subplot(111)
+	xvals, yvals = x_points + (ind_bar_width / 2), gpt3_origin_zerogen_acc[rank_order]
+	bar_container = plt.bar(xvals, yvals, yerr=gpt3_origin_zerogen_err[:, rank_order],
+			color=gpt3_origin_color, edgecolor='black', width=ind_bar_width, ecolor='gray')
+	label_fmt = '{:,.2f}'
+	ax.bar_label(bar_container, fmt=label_fmt)
+
+	xvals, yvals = x_points - (ind_bar_width / 2), GPT3_zerogen_acc[rank_order]
+	bar_container = plt.bar(xvals, yvals, yerr=GPT3_zerogen_err[:, rank_order],
+			color=gpt3_color, edgecolor='black', width=ind_bar_width, ecolor='gray')
+	ax.bar_label(bar_container, fmt=label_fmt)
+	plt.ylim([0, 1])
+	plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1], ['0', '0.2', '0.4', '0.6', '0.8', '1'], fontsize=plot_fontsize)
+	plt.ylabel('Generative accuracy', fontsize=axis_label_fontsize)
+	plt.xticks(x_points, np.array(all_zerogen_prob_type_names)[rank_order], fontsize=plot_fontsize)
+	plt.xlabel('Transformation type', fontsize=axis_label_fontsize)
+	plt.title('Zero-generalization problems', pad=20)
+	plt.legend(['GPT-3 Original', 'GPT-3 Modified'], fontsize=10, frameon=False, loc='upper right')
+	hide_top_right(ax)
+	plt.tight_layout()
+	plt.savefig(results_dir + 'zerogen_acc_comparison.png', dpi=300, bbox_inches="tight")
+	plt.show()
+	plt.close()
 
 
 if __name__ == '__main__':

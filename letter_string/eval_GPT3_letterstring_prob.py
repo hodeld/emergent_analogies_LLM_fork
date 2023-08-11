@@ -69,7 +69,7 @@ def main(args):
 	N_prob_types = len(prob_types)
 	new_file = True
 	# Evaluate
-	N_trials_per_prob_type = 10 # 50 todo
+	N_trials_per_prob_type = 50
 	print('N_trials_per_prob_type', N_trials_per_prob_type)
 	all_prob_type_responses = []
 	for p in range(N_prob_types):
@@ -89,6 +89,8 @@ def main(args):
 					print('trying again...')
 					time.sleep(5)
 			prob_type_responses.append(response['choices'][0]['text'])
+			if t == 1:
+				print(prompt, response['choices'][0]['text'])
 		all_prob_type_responses.append(prob_type_responses)
 		# Save
 		save_fname = 'gpt3_responses/gpt3_letterstring_results'
