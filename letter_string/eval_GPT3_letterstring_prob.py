@@ -90,7 +90,7 @@ def main(args):
 					time.sleep(5)
 			prob_type_responses.append(response['choices'][0]['text'])
 			if t == 1:
-				print(prompt, response['choices'][0]['text'])
+				print('prob', prob, prompt, response['choices'][0]['text'])
 		all_prob_type_responses.append(prob_type_responses)
 		# Save
 		save_fname = 'gpt3_responses/gpt3_letterstring_results'
