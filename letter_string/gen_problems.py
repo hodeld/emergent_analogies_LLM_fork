@@ -5,6 +5,8 @@ import json
 
 import pandas as pd
 
+from letter_string.get_arguments import get_suffix_modified
+
 ## Problems generated using one of the following 6 transformations:
 #
 # Successorship
@@ -64,6 +66,10 @@ INTERVAL_MOD = 4  # added to the interval of 1 used in the paper
 INTERVAL_SIZE = 5  # in paper = 2
 # Alphabet
 letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+#random.seed(1)
+#random.shuffle(letters,) # synthetic
+letters = ['x', 'y', 'l', 'k', 'w', 'b', 'f', 'z', 't', 'n', 'j', 'r', 'q', 'a', 'h', 'v', 'g', 'm', 'u', 'o', 'p', 'd', 'i', 'c', 's', 'e']
+print(letters)
 N_letters = len(letters)
 # Numbers
 numbers = np.arange(N_letters) + 1
@@ -386,7 +392,7 @@ def main(do_modify=False):
 		all_prob_np[all_prob_type_names[p]] = all_prob_types[p]
 	# Write numpy file
 	if do_modify:
-		suffix = '_modified'
+		suffix = get_suffix_modified()  # '_modified'
 	np.savez(f'./all_prob{suffix}.npz', all_prob=all_prob_np)
 	# Convert to json strings
 	all_prob_json_string = json.dumps(all_prob_js)

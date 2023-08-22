@@ -8,14 +8,18 @@ import os
 import time
 
 from get_arguments import args, get_suffix, get_suffix_problems, get_prob_types
+from letter_string.gen_problems import letters
 from secrets_openai import OPENAI_KEY
 
-
+do_synthetic = True
 
 def generate_prompt(prob, args):
 
 	prompt = ''
 	if not args.noprompt:
+		if do_synthetic:
+			letters_str = ' '.join(letters)
+			prompt += f'Use this fictional alphabet: [{letters_str}]. '
 		prompt += "Let's try to complete the pattern:\n\n"
 	if args.sentence:
 		prompt += 'If '
