@@ -1,11 +1,13 @@
+import os
+import shutil
+
 import numpy as np
 from copy import deepcopy
 import random
 import json
 
 import pandas as pd
-
-from letter_string.get_arguments import get_suffix_modified
+from letter_string.get_arguments import get_suffix_modified, args, get_version_dir
 
 ## Problems generated using one of the following 6 transformations:
 #
@@ -62,13 +64,16 @@ from letter_string.get_arguments import get_suffix_modified
 #
 ##
 
-INTERVAL_MOD = 4  # added to the interval of 1 used in the paper
-INTERVAL_SIZE = 5  # in paper = 2
+INTERVAL_MOD = 1  # added to the interval of 1 used in the paper
+INTERVAL_SIZE =  INTERVAL_MOD + 1 # in paper = 2
 # Alphabet
-letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
-#random.seed(1)
-#random.shuffle(letters,) # synthetic
-letters = ['x', 'y', 'l', 'k', 'w', 'b', 'f', 'z', 't', 'n', 'j', 'r', 'q', 'a', 'h', 'v', 'g', 'm', 'u', 'o', 'p', 'd', 'i', 'c', 's', 'e']
+if args.synthetic:
+	# random.seed(1)
+	# random.shuffle(letters,)
+	letters = ['x', 'y', 'l', 'k', 'w', 'b', 'f', 'z', 't', 'n', 'j', 'r', 'q', 'a', 'h', 'v', 'g', 'm', 'u', 'o', 'p', 'd', 'i', 'c', 's', 'e']
+else:
+	letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+
 print(letters)
 N_letters = len(letters)
 # Numbers
@@ -133,7 +138,7 @@ def apply_fix_alphabet(prob_letters):
 
 # Sort letters
 def apply_sort(prob_letters):
-	prob_letters.sort()
+	#prob_letters.sort()
 	swap_loc = np.arange(len(prob_letters))
 	np.random.shuffle(swap_loc)
 	i_loc = swap_loc[0]
@@ -159,11 +164,13 @@ def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=
 	all_mods = []
 	while len(all_prob) < N_prob:
 		# Sample source letters
-		src_start = np.floor(np.random.rand() * (len(letters)-(standard_len-1))).astype(int)
 		if 'larger_int_all' in modifications:
-			tgt_span = (standard_len * larger_int_size) - 1
-			src_letters = (letters * 3)[src_start:src_start + tgt_span][::larger_int_size]
+			src_span = (standard_len * larger_int_size) - 1
+			src_start = np.floor(np.random.rand() * (len(letters)-src_span)).astype(int)
+			src_letters = letters[src_start:src_start + src_span][::larger_int_size]
 		else:
+			src_span = standard_len + INTERVAL_MOD -1
+			src_start = np.floor(np.random.rand() * (len(letters)-src_span)).astype(int)
 			src_letters = letters[src_start:src_start+standard_len]
 		# Sample generalizations
 		random.shuffle(gen_allowed)
@@ -189,15 +196,15 @@ def gen_prob_subset(N_generalize=0, N_prob=100, standard_len=5, longer_targ_len=
 						src_duplicate = False
 				tgt_letters = letters[tgt_start:tgt_start+longer_targ_len]
 			elif 'larger_int_all' in modifications or ('longer_targ' not in generalize and 'larger_int' in generalize):
-				tgt_span = (standard_len * larger_int_size) - 1
+				tgt_span = standard_len * larger_int_size - 1
+				if 'larger_int_all' in modifications:
+					assert src_span == tgt_span
 				src_duplicate = True
 				while src_duplicate:
-					#tgt_start = np.floor(np.random.rand() * (len(letters)-(tgt_span-1))).astype(int) # skewing towards the beginning of the alphabet
-					tgt_start = np.floor(np.random.rand() * (len(letters) - 1)).astype(int)
+					tgt_start = np.floor(np.random.rand() * (len(letters)-(tgt_span))).astype(int) # skewing towards the beginning of the alphabet
 					if src_start != tgt_start:
 						src_duplicate = False
-				# extending letters for larger interval size
-				tgt_letters = (letters*3)[tgt_start:tgt_start+tgt_span][::larger_int_size]
+				tgt_letters = letters[tgt_start:tgt_start+tgt_span][::larger_int_size]
 			elif 'longer_targ' not in generalize and 'larger_int' not in generalize:
 				src_duplicate = True
 				while src_duplicate:
@@ -328,7 +335,26 @@ def split_subset(all_prob, N_split):
 		all_prob_split.append(subset)
 	return all_prob_split
 
-def main(do_modify=False):
+def main(args):
+	if args.modified:
+		do_modify = True
+	else:
+		do_modify = False
+	if do_modify:
+		suffix = get_suffix_modified(args)
+	else:
+		suffix = ''
+
+	f_name = f'all_prob{suffix}.npz'
+	fp = './' + f_name
+	if suffix == '_modified_prompt':  # copy modified file since same problems
+		fp_modified = './' + f'all_prob_modified.npz'
+		shutil.copyfile(fp_modified, fp)
+		vrs_dir = get_version_dir(args)
+		shutil.copyfile(fp_modified, os.path.join(vrs_dir, f_name))
+		print('Use same problems as without prompt. Copied to', fp)
+		return
+
 	if do_modify:
 		modifications_1 = ['larger_int_focus']
 		modifications_2 = ['larger_int_all']
@@ -391,9 +417,8 @@ def main(do_modify=False):
 		all_prob_js = save_prob(all_prob_types[p], all_prob_type_names[p], all_prob_js)
 		all_prob_np[all_prob_type_names[p]] = all_prob_types[p]
 	# Write numpy file
-	if do_modify:
-		suffix = get_suffix_modified()  # '_modified'
-	np.savez(f'./all_prob{suffix}.npz', all_prob=all_prob_np)
+
+	np.savez(fp, all_prob=all_prob_np)
 	# Convert to json strings
 	all_prob_json_string = json.dumps(all_prob_js)
 	# Write to js script
@@ -401,10 +426,17 @@ def main(do_modify=False):
 	js_fid = open(js_fname, 'w')
 	js_fid.write('var all_problems = ' + all_prob_json_string)
 	js_fid.close()
+	save_to_versions(args, all_prob_np, f_name)
+
+
+def save_to_versions(args, all_prob_np, f_name):
+	vrs_dir = get_version_dir(args)
+	fp = os.path.join(vrs_dir, f_name)
+	np.savez(fp, all_prob=all_prob_np)
 
 
 if __name__ == '__main__':
-	main(do_modify=True)
+	main(args)
 
 
 

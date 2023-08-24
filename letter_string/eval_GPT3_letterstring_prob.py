@@ -7,17 +7,16 @@ import argparse
 import os
 import time
 
-from get_arguments import args, get_suffix, get_suffix_problems, get_prob_types
+from get_arguments import args, get_suffix, get_suffix_problems, get_prob_types, get_version_dir
 from letter_string.gen_problems import letters
 from secrets_openai import OPENAI_KEY
 
-do_synthetic = True
 
 def generate_prompt(prob, args):
 
 	prompt = ''
 	if not args.noprompt:
-		if do_synthetic:
+		if args.synthetic or args.alphabetprompt:
 			letters_str = ' '.join(letters)
 			prompt += f'Use this fictional alphabet: [{letters_str}]. '
 		prompt += "Let's try to complete the pattern:\n\n"
@@ -93,7 +92,7 @@ def main(args):
 					print('trying again...')
 					time.sleep(5)
 			prob_type_responses.append(response['choices'][0]['text'])
-			if t == 1:
+			if t == 0:
 				print('prob', prob, prompt, response['choices'][0]['text'])
 		all_prob_type_responses.append(prob_type_responses)
 		# Save
@@ -105,6 +104,18 @@ def main(args):
 			shutil.copyfile(save_fname, new_name)
 			new_file = False
 		np.savez(save_fname, all_prob_type_responses=all_prob_type_responses, allow_pickle=True)
+	save_to_versions(args, all_prob_type_responses)
+
+
+def save_to_versions(args, all_prob_type_responses, save_fname='gpt3_letterstring_results'):
+	save_fname += get_suffix(args)
+	save_fname += '.npz'
+	vrs_dir = get_version_dir(args)
+	fp = os.path.join(vrs_dir, save_fname)
+	if os.path.isfile(fp):
+		new_name = fp.replace('gpt3_letterstring_results', 'gpt3_letterstring_res_copy')
+		shutil.copyfile(fp, new_name)
+	np.savez(fp, all_prob_type_responses=all_prob_type_responses, allow_pickle=True)
 
 
 if __name__ == '__main__':

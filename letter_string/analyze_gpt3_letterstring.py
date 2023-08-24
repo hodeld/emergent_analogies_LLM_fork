@@ -1,3 +1,6 @@
+import glob
+import shutil
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -20,22 +23,38 @@ def check_path(path):
 
 def get_results_dir():
 	return './GPT3_results' + get_suffix(args) +'/'
+
+def get_response_name(version_dir):
+	fname_substr = version_dir + '/gpt3_letterstring_results' + '*.npz'
+	fname = glob.glob(fname_substr)[0]
+	print(fname)
+	return fname
+
+
+def get_problems(version_dir):
+	fname_substr = version_dir + '/all_prob' + '*.npz'
+	fname = glob.glob(fname_substr)[0]
+	print(fname)
+	all_prob = np.load(fname, allow_pickle=True)['all_prob']
+	return all_prob
+
+
 def hide_top_right(ax):
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
 	ax.yaxis.set_ticks_position('left')
 	ax.xaxis.set_ticks_position('bottom')
 
-def main():
+def main(version_dir):
 	# Load data
-	fname = 'gpt3_responses/gpt3_letterstring_results' + get_suffix(args) +'.npz'
+	fname = get_response_name(version_dir)
 	all_responses = np.load(fname)['all_prob_type_responses']
 
 	N_prob_types = all_responses.shape[0]
 	N_trials_per_prob_type = all_responses.shape[1]
 	# Load problems
-	suffix_prblms = get_suffix_problems(args)
-	all_prob = np.load(f'./all_prob{suffix_prblms}.npz', allow_pickle=True)['all_prob']
+	#suffix_prblms = get_suffix_problems(args)
+	all_prob = get_problems(version_dir)
 	prob_types = builtins.list(all_prob.item().keys())
 	prob_types = get_prob_types(args, all_prob, prob_types)
 	# All possible combinations of transformations and generalizations
@@ -137,7 +156,7 @@ def main():
 	all_prob_realworld = np.array(all_prob_realworld)
 
 	# Create directory for results
-	results_dir = get_results_dir()
+	results_dir = version_dir + '/' # get_results_dir()
 	print(results_dir)
 	check_path(results_dir)
 
@@ -317,10 +336,9 @@ def main():
 	plt.close()
 	# Save results
 	np.savez(results_dir + 'realworld_acc.npz', all_acc=all_realworld_acc, all_err=all_realworld_err)
-	plot_paper_comparison(prob_types)
 
 
-def plot_paper_comparison(prob_types):
+def plot_paper_comparison(prob_types, versions):
 
 	all_zerogen_prob_type_names = ['Successor', 'Predecessor', 'Extend\nsequence', 'Remove\nredundant\nletter',
 								   'Fix\nalphabetic\nsequence', 'Sort']
@@ -329,51 +347,77 @@ def plot_paper_comparison(prob_types):
 	trans_order = ['add_letter', 'succ', 'pred', 'remove_redundant', 'fix_alphabet', 'sort'] # according to the paper
 	rank_order = prob_types_s.loc[trans_order].values
 
-	results_dir = get_results_dir()
+	results_dir = 'GPT3_results_modified_versions/'
 
+	modified_versions = ['1_real', '2_real_prompt', '3_synthetic']
+	all_versions = ['0_original'] + modified_versions
+	modified_version_dirs = [os.path.join('GPT3_results_modified_versions', vrs) for vrs in modified_versions]
+	gpt3_origin_dir = './GPT3_results'
+	all_version_dirs = [gpt3_origin_dir] + modified_version_dirs
+	versions_dir_d = {k: v for k, v in zip(all_versions, all_version_dirs)}
+	version_dirs = [v for k, v in versions_dir_d.items() if k in versions]
 	# Plot settings
-	gpt3_color = 'salmon'
 	gpt3_origin_color = 'darkslateblue'
+	color_d = {'0_original': '#2c7bb6', '1_real': '#abd9e9', '2_real_prompt': '#fdae61', '3_synthetic': '#d7191c'}
+	colors = [v for k, v in color_d.items() if k in versions]
+
+	legend_d = {'0_original': 'Original', '1_real': 'Real alphabet', '2_real_prompt':'Real alphabet & prompt',
+				'3_synthetic':'Synthetic alphabet'}
+	legend_li = [v for k, v in legend_d.items() if k in versions]
+
 	plot_fontsize = 10
 	title_fontsize = 12
 	axis_label_fontsize = 12
+	nr_bars = len(version_dirs)
 	bar_width = 0.8
-	ind_bar_width = bar_width / 2
+	ind_bar_width = bar_width / nr_bars
 
 	## Zero-generalization problems, grouped by transformation type
 	# Load results
-	gpt3_origin_zerogen_results = np.load('./GPT3_results/zerogen_acc.npz')
-	gpt3_origin_zerogen_acc = gpt3_origin_zerogen_results['all_acc']
-	gpt3_origin_zerogen_err = gpt3_origin_zerogen_results['all_err']
-	GPT3_zerogen_results = np.load(results_dir + 'zerogen_acc.npz')
-	GPT3_zerogen_acc = GPT3_zerogen_results['all_acc']
-	GPT3_zerogen_err = GPT3_zerogen_results['all_err']
+	versions_fps = [vrs_dir + '/zerogen_acc.npz' for vrs_dir in  version_dirs]
 
 	x_points = np.arange(len(all_zerogen_prob_type_names))
+	x_points_i = x_points - ((nr_bars - 1)/2 * ind_bar_width)
 	ax = plt.subplot(111)
-	xvals, yvals = x_points + (ind_bar_width / 2), gpt3_origin_zerogen_acc[rank_order]
-	bar_container = plt.bar(xvals, yvals, yerr=gpt3_origin_zerogen_err[:, rank_order],
-			color=gpt3_origin_color, edgecolor='black', width=ind_bar_width, ecolor='gray')
-	label_fmt = '{:,.2f}'
-	ax.bar_label(bar_container, fmt=label_fmt)
+	for i, (fp, color_i) in enumerate(zip(versions_fps, colors)):
+		result_dict = np.load(fp)
+		zerogen_acc = result_dict['all_acc']
+		zerogen_err = result_dict['all_err']
+		xvals, yvals = x_points_i + i*(ind_bar_width), zerogen_acc[rank_order]
+		bar_container = plt.bar(xvals, yvals, yerr=zerogen_err[:, rank_order],
+				color=color_i, edgecolor='black', width=ind_bar_width, ecolor='gray')
+		label_fmt = '{:,.2f}'
+		if nr_bars > 2 and i == 3:
+			ax.bar_label(bar_container, fmt=label_fmt) #, rotation=30)
 
-	xvals, yvals = x_points - (ind_bar_width / 2), GPT3_zerogen_acc[rank_order]
-	bar_container = plt.bar(xvals, yvals, yerr=GPT3_zerogen_err[:, rank_order],
-			color=gpt3_color, edgecolor='black', width=ind_bar_width, ecolor='gray')
-	ax.bar_label(bar_container, fmt=label_fmt)
 	plt.ylim([0, 1])
 	plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1], ['0', '0.2', '0.4', '0.6', '0.8', '1'], fontsize=plot_fontsize)
 	plt.ylabel('Generative accuracy', fontsize=axis_label_fontsize)
 	plt.xticks(x_points, np.array(all_zerogen_prob_type_names)[rank_order], fontsize=plot_fontsize)
 	plt.xlabel('Transformation type', fontsize=axis_label_fontsize)
-	plt.title('Zero-generalization problems', pad=20)
-	plt.legend(['GPT-3 Original', 'GPT-3 Modified'], fontsize=10, frameon=False, loc='upper right')
+	plt.title('GPT-3 zero-generalization problems', pad=40)
+	plt.legend(legend_li, fontsize=10, ncol=2, bbox_to_anchor=(1, 1.15)) # frameon=False, loc='upper right')
 	hide_top_right(ax)
 	plt.tight_layout()
-	plt.savefig(results_dir + 'zerogen_acc_comparison.png', dpi=300, bbox_inches="tight")
+	plt.savefig(results_dir + 'zerogen_acc_comparison_versions.png', dpi=300, bbox_inches="tight")
 	plt.show()
 	plt.close()
 
+def analyze_versions():
+	versions_mod = ['2_real_prompt']
+	versions = [os.path.join('GPT3_results_modified_versions', vrs) for vrs in versions_mod]
+	for vrs_dir in versions:
+		#pass
+		main(vrs_dir)
+	all_prob = get_problems(versions[0])
+
+	prob_types = builtins.list(all_prob.item().keys())
+	prob_types = get_prob_types(args, all_prob, prob_types)
+	versions_mod = ['1_real', '2_real_prompt', '3_synthetic']
+	versions = ['0_original'] + versions_mod
+	#versions = ('2_real_prompt', '3_synthetic')
+	plot_paper_comparison(prob_types, versions)
+
 
 if __name__ == '__main__':
-	main()
+	analyze_versions()
