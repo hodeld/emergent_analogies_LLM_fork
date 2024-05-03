@@ -2,3 +2,11 @@
 /.idea/
 /letter_string/gen_problems_archive/
 /letter_string/GPT3_results_modified_subset/archive/
+/letter_string/GPT3_results_noprompt/
+/letter_string/GPT3_results_replica/
+/letter_string/GPT3_results_replica_subset/
+/letter_string/GPT3_results_sentence/
+/letter_string/GPT3_results_modified_prompt_subset/
+/letter_string/GPT3_results_modified_subset/
+/letter_string/GPT3_results_modified_synthetic_subset/
+/letter_string/responses_archive/

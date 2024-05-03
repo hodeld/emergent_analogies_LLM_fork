@@ -13,11 +13,11 @@ python3 ./eval_GPT3_letterstring_prob.py
 ```
 Note that you will need to create a file named ```secrets_openai.py``` and enter your OpenAI API key as follows: ```OPENAI_KEY = 'KEY'```.
 
-To analyze GPT-3's responses for all four settings, run:
+To create the figures in our paper, run:
 ```
-python3 ./analyze_gpt3_letterstring.py
+python3 ./plot_figures.py
 ```
-The figure of our paper is stored in: ```./GPT3_results_modified_versions/zerogen_acc_comparison_versions.png```
+The figures of our paper are stored in: ```./human_vs_GPT3/*.png```
 
 Use the following arguments on the scripts to evaluate in a different setting: 
 - ```--no-synthetic```: real alphabet
