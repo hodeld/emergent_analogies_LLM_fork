@@ -63,9 +63,13 @@ from letter_string.get_arguments import get_suffix_modified, args, get_version_d
 # [m l k j] [m l k i]
 #
 ##
+if args.modified:
+	INTERVAL_MOD = 1  # added to the interval of 1 used in the paper
+	INTERVAL_SIZE =  INTERVAL_MOD + 1 # in paper = 2
+else:
+	INTERVAL_MOD = 0
+	INTERVAL_SIZE =  INTERVAL_MOD + 1
 
-INTERVAL_MOD = 1  # added to the interval of 1 used in the paper
-INTERVAL_SIZE =  INTERVAL_MOD + 1 # in paper = 2
 # Alphabet
 if args.synthetic:
 	# random.seed(1)
@@ -336,7 +340,7 @@ def split_subset(all_prob, N_split):
 	return all_prob_split
 
 def main(args):
-	if args.modified:
+	if args.modified or args.synthetic:
 		do_modify = True
 	else:
 		do_modify = False

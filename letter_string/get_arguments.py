@@ -9,7 +9,7 @@ parser.add_argument('--replica', action='store_true', help="Replicate results", 
 parser.add_argument('--subset', action='store_true', help="Use subset", default=True)
 parser.add_argument('--no-subset', dest='subset', action='store_false', help="Do not use subset")
 
-parser.add_argument('--modified', action='store_true', help="Use modified problems", default=True)
+parser.add_argument('--modified', action='store_true', help="Use modified problems", default=False) # todo
 parser.add_argument('--no-modified', dest='modified', action='store_false', help="Do not use modified problems")
 parser.add_argument('--synthetic', action='store_true', help="Use synthetic alphabet", default=True)
 parser.add_argument('--no-synthetic', dest='synthetic', action='store_false', help="Do not use synthetic alphabet")
@@ -20,8 +20,12 @@ args = parser.parse_args()
 
 
 def get_suffix_modified(args):
+
     if args.synthetic:
-        suffix = '_modified_synthetic'
+        if args.modified is False:
+            suffix = '_synthetic_interval1'
+        else:
+            suffix = '_modified_synthetic'
     elif args.alphabetprompt:
         suffix = '_modified_prompt'
     else:
@@ -36,7 +40,7 @@ def get_suffix(args):
     if args.noprompt:
         save_fname += '_noprompt'
 
-    if args.modified:
+    if args.modified or args.synthetic:
         save_fname += get_suffix_modified(args)
     elif args.replica:
         save_fname += '_replica'
@@ -60,7 +64,8 @@ def get_prob_types(args, all_prob, prob_types):
 
 
 def get_version_dir(args):
-    dir_d = {'_modified': '1_real', '_modified_prompt': '2_real_prompt', '_modified_synthetic': '3_synthetic',}
+    dir_d = {'_modified': '1_real', '_modified_prompt': '2_real_prompt', '_modified_synthetic': '3_synthetic',
+             '_synthetic_interval1': '4_synthetic_interval1'}
     suffix = get_suffix_modified(args)
     vrs = dir_d[suffix]
     vrs_dir = os.path.join('GPT3_results_modified_versions', vrs)
