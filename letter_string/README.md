@@ -22,6 +22,7 @@ The figures of our paper are stored in: ```./human_vs_GPT3/*.png```
 Use the following arguments on the scripts to evaluate in a different setting: 
 - ```--no-synthetic```: real alphabet
 - ```--no-synthetic --no-alphabet-prompt```: real alphabet without modified prompt
+- ```--no-modified```: synthetic alphabet with an interval size of 1
 
 
 Note that results are already included in this repository.
